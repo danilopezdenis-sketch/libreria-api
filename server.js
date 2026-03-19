@@ -14,12 +14,23 @@ app.use("/api/libros", librosRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-async function startServer() {
-  await connectDB();
-  
+// Conectar a la base de datos al inicio
+let dbConnected = false;
+
+app.use(async (req, res, next) => {
+  if (!dbConnected) {
+    await connectDB();
+    dbConnected = true;
+  }
+  next();
+});
+
+// Para desarrollo local
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
   });
 }
 
-startServer();
+// Para Vercel (serverless)
+module.exports = app;
