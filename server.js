@@ -6,9 +6,20 @@ app.use(express.json());
 
 const uri = process.env.MONGODB_URI || "mongodb+srv://admin:kiva59_D@cluster0.dglndyo.mongodb.net/libreria?retryWrites=true&w=majority";
 
-mongoose.connect(uri)
-  .then(() => console.log("✅ Conectado a MongoDB con Mongoose"))
-  .catch(err => console.error("❌ Error:", err.message));
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+  
+  try {
+    await mongoose.connect(uri);
+    isConnected = true;
+    console.log("✅ Conectado a MongoDB");
+  } catch (error) {
+    console.error("❌ Error MongoDB:", error.message);
+    throw error;
+  }
+};
 
 // Ruta de prueba
 app.get("/", (req, res) => {
@@ -18,6 +29,8 @@ app.get("/", (req, res) => {
 // GET /api/autores
 app.get("/api/autores", async (req, res) => {
   try {
+    await connectDB();
+    
     const { nacionalidad } = req.query;
     let query = {};
     if (nacionalidad) query.nacionalidad = nacionalidad;
@@ -33,9 +46,11 @@ app.get("/api/autores", async (req, res) => {
 // GET /api/libros
 app.get("/api/libros", async (req, res) => {
   try {
-    const { sort } = req.query;
+    await connectDB();
     
+    const { sort } = req.query;
     const db = mongoose.connection.db;
+    
     const options = sort === "titulo" ? { sort: { titulo: 1 } } : {};
     const libros = await db.collection("libros").find({}, options).toArray();
     
@@ -49,7 +64,8 @@ module.exports = app;
 
 if (require.main === module) {
   const PORT = 3000;
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
+    await connectDB();
     console.log(`Servidor en http://localhost:${PORT}`);
   });
 }
