@@ -1,62 +1,42 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const mongoose = require("mongoose");
 
 const app = express();
 app.use(express.json());
 
-let db;
-const uri = process.env.MONGODB_URI || "mongodb+srv://admin:kiva59_D@cluster0.dglndyo.mongodb.net/?retryWrites=true&w=majority";
+const uri = process.env.MONGODB_URI || "mongodb+srv://admin:kiva59_D@cluster0.dglndyo.mongodb.net/libreria?retryWrites=true&w=majority";
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-  tls: true,
-  tlsAllowInvalidCertificates: true,
+// Conectar con Mongoose
+mongoose.connect(uri)
+  .then(() => console.log("✅ Conectado a MongoDB con Mongoose"))
+  .catch(err => console.error("❌ Error:", err.message));
+
+const db = mongoose.connection;
+
+// Ruta de prueba
+app.get("/", (req, res) => {
+  res.json({ message: "API funcionando con Mongoose" });
 });
 
-async function connectDB() {
-  if (db) return db;
-  try {
-    await client.connect();
-    db = client.db("libreria");
-    console.log("Conectado a MongoDB Atlas");
-    return db;
-  } catch (error) {
-    console.error("Error MongoDB:", error.message);
-    throw error;
-  }
-}
-
-app.get("/", async (req, res) => {
-  res.json({ message: "API funcionando" });
-});
-
+// GET /api/autores
 app.get("/api/autores", async (req, res) => {
   try {
-    const database = await connectDB();
     const { nacionalidad } = req.query;
-    
     let query = {};
-    if (nacionalidad) {
-      query.nacionalidad = nacionalidad;
-    }
+    if (nacionalidad) query.nacionalidad = nacionalidad;
     
-    const autores = await database.collection("autores").find(query).toArray();
+    const autores = await db.collection("autores").find(query).toArray();
     res.json(autores);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// GET /api/libros
 app.get("/api/libros", async (req, res) => {
   try {
-    const database = await connectDB();
     const { sort } = req.query;
-    
-    let query = database.collection("libros").find({});
+    let query = db.collection("libros").find({});
     
     if (sort === "titulo") {
       query = query.sort({ titulo: 1 });
@@ -74,6 +54,6 @@ module.exports = app;
 if (require.main === module) {
   const PORT = 3000;
   app.listen(PORT, () => {
-    console.log(`Servidor en puerto ${PORT}`);
+    console.log(`Servidor en http://localhost:${PORT}`);
   });
 }
