@@ -1,40 +1,39 @@
 const express = require("express");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
 const app = express();
 app.use(express.json());
 
 let db;
-const uri = process.env.MONGODB_URI || "mongodb+srv://admin:kiva59_D@cluster0.dglndyo.mongodb.net/libreria";
+const uri = process.env.MONGODB_URI || "mongodb+srv://admin:kiva59_D@cluster0.dglndyo.mongodb.net/?retryWrites=true&w=majority";
 
-// Opciones de conexión para Vercel
-const mongoOptions = {
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
   tls: true,
   tlsAllowInvalidCertificates: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-};
+});
 
 async function connectDB() {
   if (db) return db;
   try {
-    const client = new MongoClient(uri, mongoOptions);
     await client.connect();
     db = client.db("libreria");
-    console.log("Conectado a MongoDB");
+    console.log("Conectado a MongoDB Atlas");
     return db;
   } catch (error) {
-    console.error("Error conectando a MongoDB:", error.message);
+    console.error("Error MongoDB:", error.message);
     throw error;
   }
 }
 
-// Ruta de prueba
 app.get("/", async (req, res) => {
   res.json({ message: "API funcionando" });
 });
 
-// Rutas de autores
 app.get("/api/autores", async (req, res) => {
   try {
     const database = await connectDB();
@@ -52,7 +51,6 @@ app.get("/api/autores", async (req, res) => {
   }
 });
 
-// Rutas de libros
 app.get("/api/libros", async (req, res) => {
   try {
     const database = await connectDB();
